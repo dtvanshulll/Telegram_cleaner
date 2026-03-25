@@ -1,0 +1,3 @@
+telebridge
+python-dotenv
+tqdm

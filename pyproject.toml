@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telegramcleaner"
+version = "0.1.0"
+description = "Telegram channel cleaner with batch deletion and FloodWait handling."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "dtvanshulll" },
+]
+dependencies = [
+  "telebridge",
+  "python-dotenv",
+  "tqdm",
+]
+
+[project.scripts]
+telegramcleaner = "telegramcleaner.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["telegramcleaner*"]

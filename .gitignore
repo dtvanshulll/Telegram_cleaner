@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.session
+*.session-journal
+.env
+channels.json
+*.log
+.venv/
+build/
+dist/
+*.egg-info/
