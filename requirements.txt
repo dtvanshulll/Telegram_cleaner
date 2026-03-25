@@ -1,3 +1,4 @@
+colorama>=0.4.6
+python-dotenv>=1.0.1
 telebridge
-python-dotenv
-tqdm
+tqdm>=4.62.3

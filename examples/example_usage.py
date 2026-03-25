@@ -2,17 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
-from telegramcleaner import CleanerConfig, TelegramCleaner
+from telegramcleaner import TelegramCleaner, configure_logging, load_config
 
 
 async def main() -> None:
-    config = CleanerConfig(
-        api_id=123456,
-        api_hash="your_telegram_api_hash_here",
-        session_name="telegramcleaner",
-        channels=("@channel1", "@channel2", "-100123456789"),
-    )
-
+    configure_logging(log_level="INFO")
+    config = load_config()
     cleaner = TelegramCleaner(config)
 
     try:

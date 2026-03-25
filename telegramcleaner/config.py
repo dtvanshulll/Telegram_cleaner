@@ -10,6 +10,7 @@ from dotenv import dotenv_values
 DEFAULT_SESSION_NAME = "telegramcleaner"
 DEFAULT_ENV_FILE = ".env"
 DEFAULT_CHANNELS_FILE = "channels.json"
+DEFAULT_LOG_FILE = "telegramcleaner.log"
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,7 +146,7 @@ def parse_channels_input(raw_value: str) -> tuple[str, ...]:
 def _load_env_file(env_path: Path) -> dict[str, str]:
     if not env_path.is_file():
         raise FileNotFoundError(
-            f"Environment file not found: {env_path}. Copy .env.example to .env or run the CLI wizard."
+            f"Environment file not found: {env_path}. Run 'telegramcleaner' to launch the setup wizard."
         )
 
     raw_values = dotenv_values(env_path)
@@ -198,6 +199,10 @@ def _normalize_session_name(raw_value: str | None) -> str:
     if raw_value is None or not raw_value.strip():
         return DEFAULT_SESSION_NAME
     return raw_value.strip()
+
+
+def invalid_credentials_message() -> str:
+    return "Invalid Telegram API credentials. Get them from https://my.telegram.org"
 
 
 def _require_non_empty(raw_value: str | None, key: str) -> str:

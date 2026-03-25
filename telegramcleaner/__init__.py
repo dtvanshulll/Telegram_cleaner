@@ -6,20 +6,23 @@ from .cleaner import (
     TeleBridgeChannelCleaner,
     TelegramCleaner,
     configure_logging,
+    configure_logging_with_file,
     list_channels,
     run_cleaner,
     run_command_mode,
 )
-from .config import CleanerConfig, config_from_dict, load_config, save_config, save_env_config
+from .config import CleanerConfig, DEFAULT_LOG_FILE, config_from_dict, load_config, save_config, save_env_config
 
 __all__ = [
     "AvailableChannel",
     "ChannelCleanupResult",
     "CleanerConfig",
+    "DEFAULT_LOG_FILE",
     "TeleBridgeChannelCleaner",
     "TelegramCleaner",
     "config_from_dict",
     "configure_logging",
+    "configure_logging_with_file",
     "list_channels",
     "load_config",
     "run_cleaner",
@@ -28,4 +31,4 @@ __all__ = [
     "save_config",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

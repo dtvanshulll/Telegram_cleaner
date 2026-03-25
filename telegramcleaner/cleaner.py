@@ -4,12 +4,14 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, Awaitable, Callable, Sequence
 
 from telebridge import TeleBridgeApp
 from tqdm import tqdm
 
-from .config import CleanerConfig
+from .config import CleanerConfig, DEFAULT_LOG_FILE
 
 DEFAULT_BATCH_SIZE = 100
 PROGRESS_UPDATE_INTERVAL = 3.0
@@ -77,6 +79,7 @@ class TelegramCleaner:
         self.state: dict[str, bool | str | int] = {
             "running": False,
             "paused": False,
+            "stopping": False,
             "current_channel": "",
             "deleted": 0,
             "failed": 0,
@@ -120,7 +123,7 @@ class TelegramCleaner:
         await self.start()
         await self.listen_channel_commands()
         tqdm.write(
-            "Command mode is active. Use deleteall/da, delete/d, clean/c, status/s, help/h, pause/p, resume/r, stop/x."
+            "Command mode is active. Send deleteall/da, delete/d, clean/c, status/s, help/h, pause/p, resume/r, or stop/x from your own account."
         )
         try:
             await self._client.run_until_disconnected()
@@ -184,14 +187,22 @@ class TelegramCleaner:
 
     async def request_pause(self) -> bool:
         async with self._state_lock:
-            if not bool(self.state["running"]) or bool(self.state["paused"]):
+            if (
+                not bool(self.state["running"])
+                or bool(self.state["paused"])
+                or bool(self.state["stopping"])
+            ):
                 return False
             self.state["paused"] = True
             return True
 
     async def request_resume(self) -> bool:
         async with self._state_lock:
-            if not bool(self.state["running"]) or not bool(self.state["paused"]):
+            if (
+                not bool(self.state["running"])
+                or not bool(self.state["paused"])
+                or bool(self.state["stopping"])
+            ):
                 return False
             self.state["paused"] = False
             return True
@@ -201,8 +212,8 @@ class TelegramCleaner:
             if not bool(self.state["running"]):
                 return False
             self._stop_requested = True
-            self.state["running"] = False
             self.state["paused"] = False
+            self.state["stopping"] = True
             return True
 
     async def _handle_command_event(self, event: Any) -> None:
@@ -407,6 +418,7 @@ class TelegramCleaner:
             self._stop_requested = False
             self.state["running"] = True
             self.state["paused"] = False
+            self.state["stopping"] = False
             self.state["current_channel"] = channel_label
             self.state["deleted"] = 0
             self.state["failed"] = 0
@@ -416,6 +428,7 @@ class TelegramCleaner:
         async with self._state_lock:
             self.state["running"] = False
             self.state["paused"] = False
+            self.state["stopping"] = False
         self._progress_message_chat_id = None
         self._progress_message_id = None
         self._last_progress_text = ""
@@ -847,7 +860,12 @@ class TelegramCleaner:
         percent = (processed / total * 100.0) if total > 0 else 0.0
 
         if bool(snapshot.get("running")):
-            lifecycle = "paused" if bool(snapshot.get("paused")) else "running"
+            if bool(snapshot.get("stopping")):
+                lifecycle = "stopping"
+            elif bool(snapshot.get("paused")):
+                lifecycle = "paused"
+            else:
+                lifecycle = "running"
         else:
             lifecycle = "idle"
 
@@ -897,14 +915,14 @@ class TelegramCleaner:
     def _help_text(self) -> str:
         return (
             "Commands:\n"
-            "da -> delete all\n"
-            "d <n> -> delete last n\n"
-            "c <channel> -> clean channel\n"
-            "s -> status\n"
-            "h -> help\n"
-            "p -> pause\n"
-            "r -> resume\n"
-            "x -> stop"
+            "deleteall / da\n"
+            "delete <n> / d <n>\n"
+            "clean <channel> / c <channel>\n"
+            "status / s\n"
+            "help / h\n"
+            "pause / p\n"
+            "resume / r\n"
+            "stop / x"
         )
 
     def _protected_ids(self, chat_id: int | None) -> set[int]:
@@ -967,9 +985,33 @@ TeleBridgeChannelCleaner = TelegramCleaner
 
 
 def configure_logging(log_level: str = "WARNING") -> None:
+    configure_logging_with_file(log_level=log_level, log_file=DEFAULT_LOG_FILE)
+
+
+def configure_logging_with_file(
+    *,
+    log_level: str = "WARNING",
+    log_file: str | Path | None = DEFAULT_LOG_FILE,
+) -> None:
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+
+    if log_file is not None:
+        resolved_log_file = Path(log_file).expanduser().resolve()
+        resolved_log_file.parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(
+            RotatingFileHandler(
+                resolved_log_file,
+                maxBytes=1_000_000,
+                backupCount=3,
+                encoding="utf-8",
+            )
+        )
+
     logging.basicConfig(
         level=getattr(logging, log_level.upper(), logging.WARNING),
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        handlers=handlers,
+        force=True,
     )
 
 
